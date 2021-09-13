@@ -1,25 +1,24 @@
 #include "Arduino.h"
-#include "ILI9486_t3n.h"
-#include "ili9486_t3n_font_Arial.h"
-#include "ili9486_t3n_font_ArialBold.h"
-#include "XPT2046_Touchscreen.h"
 #include "Control.h"
 
 class BUI
 {
+//Touchscreen calibration
 #define TS_MINX 3800
 #define TS_MINY 190
 #define TS_MAXX 120
 #define TS_MAXY 3800
 
+//Maximum controls per Window
 #define MAXCONTROLS 20
 
 public:
-    BUI(ILI9486_t3n *tft, XPT2046_Touchscreen *ts)
+    BUI(TFTLIB *tft, XPT2046_Touchscreen *ts)
     {
         _tft = tft;
         _ts = ts;
     };
+
     BUI(){};
 
     void init(uint16_t bgColor = 0xFFFF)
@@ -86,12 +85,12 @@ public:
             }
         }
 
-        _tft->updateScreen();
+        if(!oneIsTouched) _tft->updateScreen();
     };
 
 private:
     uint16_t _bgColor = 0xFFFF;
-    ILI9486_t3n *_tft;
+    TFTLIB *_tft;
     XPT2046_Touchscreen *_ts;
     Control *_controls[MAXCONTROLS];
     uint16_t touchDelay = 500;
