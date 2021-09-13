@@ -1,10 +1,10 @@
 //get 565-colors from http://www.barth-dev.de/online/rgb565-color-picker/
 
-#include "BUI.h"
 #include <XPT2046_Touchscreen.h>
 #include "ILI9486_t3n.h"
 #include "ili9486_t3n_font_Arial.h"
 #include "ili9486_t3n_font_ArialBold.h"
+#include "BUI.h" //include BUI after TFT and Touch libraries
 
 //Touchscreen config
 #define CS_PIN 7
@@ -31,16 +31,19 @@ uint16_t btnYPosAll = 270;
 //ui buttons
 void btn1_onClickHandler(); //predefine handler1 for add handler in btn1 definition
 void btn2_onClickHandler(); //predefine handler2 for add handler in btn2 definition
-Button btn1 = Button(btnXPos1, btnYPosAll, 100, 30, (char *)"2nd Screen", btn1_onClickHandler);
-Button btn2 = Button(btnXPos2, btnYPosAll, 100, 30, (char *)"3rd Screen", btn2_onClickHandler);
+Button btn1 = Button(btnXPos1, btnYPosAll, 100, 30, (char *)"Settings", &btn1_onClickHandler);
+Button btn2 = Button(btnXPos2, btnYPosAll, 100, 30, (char *)"Info", &btn2_onClickHandler);
 Button btnMain = Button(btnXPos2, btnYPosAll, 100, 30, (char *)"Main");
 
 //ui labels
 Label lblTitleMain = Label(10, 10, (char *)"Main screen", Arial_32);
-Label lblTitle2nd = Label(10, 10, (char *)"2nd screen", Arial_32);
-Label lblTitle3rd = Label(10, 10, (char *)"3rd screen", Arial_32);
-Label lblRunningtime = Label(10, 56, (char *)"Milliseconds since the program started:", Arial_12);
-Label lblMillis = Label(300, 56, (char *)"0", Arial_12);
+Label lblTitle2nd = Label(10, 10, (char *)"Settings", Arial_32);
+Label lblTitle3rd = Label(10, 10, (char *)"Info", Arial_32);
+Label lblRunningtime = Label(10, 100, (char *)"Milliseconds since the program started:", Arial_12);
+Label lblMillis = Label(300, 100, (char *)"0", Arial_12);
+
+//ui checkboxes
+CheckBox cb1 = CheckBox(10, 100, (char *)"Show millis on main screen");
 
 void setup()
 {
@@ -57,17 +60,25 @@ void setup()
   ts.begin();
 
   //init UI
-  btnMain.setOnClickHandler(btnMain_onClickHandler); //[optional] set handler on btn3 dynamically
+  btnMain.setOnClickHandler(&btnMain_onClickHandler); //[optional] set handler on btn3 dynamically
   getMainScreen();
 }
 
 void loop()
 {
-  unsigned long vIn = millis();
-  char vOut [11];
-  ultoa(vIn, vOut, 10);
+  if(cb1.checked)
+  {
+    unsigned long vIn = millis();
+    char vOut [11];
+    ultoa(vIn, vOut, 10);
+    
+    lblMillis.setText(vOut);
+  }
+  else
+  {
+    lblMillis.setText((char *)"n/a");
+  }
   
-  lblMillis.setText(vOut);
   ui.update(); //needed for events and draws
 }
 
@@ -105,14 +116,16 @@ void get2ndScreen()
   //init ui
   ui.init(0xEFBD); //can specify the ui background color as an argument here
 
-  //set Text to UI
-  ui.addControl(&lblTitle2nd);
-
   //[optional] set button positions
   btn2.setPosition(btnXPos1, btnYPosAll);
   btnMain.setPosition(btnXPos2, btnYPosAll);
 
+  //[optional] set checkbox1 font
+  cb1.setFont(Arial_14);
+
   //Add controls to ui
+  ui.addControl(&lblTitle2nd);
+  ui.addControl(&cb1);
   ui.addControl(&btn2);
   ui.addControl(&btnMain);
 }
