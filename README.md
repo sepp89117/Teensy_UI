@@ -1,5 +1,5 @@
 # Teensy_UI
-User interface for Teensy from version 3 upwards with touchscreen
+Graphical user interface for Teensy from version 3 upwards with touchscreen
 
 This library is intended for use with an ILIxxxx_t3n library:
 https://github.com/kurte/ILI9341_t3n
