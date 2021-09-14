@@ -41,9 +41,13 @@ Label lblTitle2nd = Label(10, 10, (char *)"Settings", Arial_32);
 Label lblTitle3rd = Label(10, 10, (char *)"Info", Arial_32);
 Label lblRunningtime = Label(10, 100, (char *)"Milliseconds since the program started:", Arial_12);
 Label lblMillis = Label(300, 100, (char *)"0", Arial_12);
+Label lblSlValue = Label(320, 156, (char *)"0", Arial_12);
 
 //ui checkboxes
 CheckBox cb1 = CheckBox(10, 100, (char *)"Show millis on main screen");
+
+//ui slider
+Slider sl1 = Slider(10, 150, 300, 24, 0, 0xFFFF, &sl1_onClickHandler);
 
 void setup()
 {
@@ -68,9 +72,8 @@ void loop()
 {
   if(cb1.checked)
   {
-    unsigned long vIn = millis();
     char vOut [11];
-    ultoa(vIn, vOut, 10);
+    ultoa(millis(), vOut, 10);
     
     lblMillis.setText(vOut);
   }
@@ -123,9 +126,14 @@ void get2ndScreen()
   //[optional] set checkbox1 font
   cb1.setFont(Arial_14);
 
+  //[optional] set slider1 value
+  sl1.value = 100;
+
   //Add controls to ui
   ui.addControl(&lblTitle2nd);
   ui.addControl(&cb1);
+  ui.addControl(&sl1);
+  ui.addControl(&lblSlValue);
   ui.addControl(&btn2);
   ui.addControl(&btnMain);
 }
@@ -163,4 +171,27 @@ void btn2_onClickHandler()
 void btnMain_onClickHandler()
 {
   getMainScreen();
+}
+
+void sl1_onClickHandler()
+{
+  lblSlValue.setText(floatToChar(sl1.value, 1));
+}
+
+
+char bufFloat[10];
+char* floatToChar(float value, int decis) {
+  byte len = 3 + decis - 1;
+  if (value >= 10) len = 4 + decis - 1;
+  if (value >= 100) len = 5 + decis - 1;
+  if (value >= 1000) len = 6 + decis - 1;
+  if (value >= 10000) len = 7 + decis - 1;
+  if (value >= 100000) len = 8 + decis - 1;
+  if (value < 0) len = 4 + decis - 1;
+  if (value <= -10) len = 5 + decis - 1;
+  if (value <= -100) len = 6 + decis - 1;
+  if (value <= -1000) len = 7 + decis - 1;
+
+  dtostrf(value, len, decis, bufFloat);
+  return bufFloat;
 }
