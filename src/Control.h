@@ -16,6 +16,7 @@ class Control
 #define BUTTON 1
 #define LABEL 2
 #define CHECKBOX 3
+#define SLIDER 4
 
 public:
     Control(){};
@@ -65,12 +66,13 @@ public:
     {
         if (enabled && touchX >= x && touchX <= x + w && touchY >= y && touchY <= y + h && touchZ > 0)
         {
+            _isTouched = true;
+            internalOnClickHandler(touchX, touchY);
+
             if (clickHandler != nullptr)
             {
                 clickHandler();
             }
-
-            internalOnClickHandler();
         }
         else
         {
@@ -80,8 +82,9 @@ public:
         return _isTouched;
     }
 
-protected:
     bool enabled = true;
+
+protected:
     uint16_t x = 0;
     uint16_t y = 0;
     uint16_t w = 50;
@@ -95,10 +98,7 @@ protected:
     void (*clickHandler)() = nullptr;
     uint8_t type = UNDEFINED;
 
-    virtual void internalOnClickHandler()
-    {
-        _isTouched = true;
-    }
+    virtual void internalOnClickHandler(int touchX, int touchY) {}
 
     static uint16_t colorBrigthness(uint16_t color, int addBrightness)
     {
@@ -261,11 +261,6 @@ public:
         clickHandler = function;
     };
 
-    void internalOnClickHandler()
-    {
-        checked = !checked;
-    }
-
     bool checked = false;
 
     void draw(TFTLIB *tft) override
@@ -289,5 +284,60 @@ public:
         tft->setTextColor(fgColor);
         tft->setCursor(x + 22, y + ((h - fH) / 2) + 1);
         tft->print(t);
+    }
+
+protected:
+    void internalOnClickHandler(int touchX, int touchY)
+    {
+        checked = !checked;
+    }
+};
+
+class Slider : public Control
+{
+public:
+    Slider()
+    {
+        type = LABEL;
+    };
+    Slider(int xPos, int yPos, int width, int height, int min, int max, void (*function)() = nullptr)
+    {
+        x = xPos;
+        y = yPos;
+        w = width;
+        h = height;
+        minValue = min;
+        maxValue = max;
+        clickHandler = function;
+        value = min;
+        t = (char *)"\0";
+        type = SLIDER;
+    };
+
+    void draw(TFTLIB *tft) override
+    {
+        //bar + outline
+        tft->fillRoundRect(x, y + h / 4, w, h / 2, h / 4, colorBrigthness(bgColor, 0));
+        tft->drawRoundRect(x, y + h / 4, w, h / 2, h / 4, colorBrigthness(bgColor, -55));
+        //sliding dot
+        if (_isTouched)
+            tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(bgColor, -21));
+        else
+            tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(bgColor, -11));
+        //sliding dot inner border
+        tft->drawCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2 - 1, colorBrigthness(bgColor, +11));
+        //sliding dot outer border
+        tft->drawCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(bgColor, -55));
+    }
+
+    float minValue = 0;
+    float maxValue = 100;
+    float value = 0;
+
+protected:
+    void internalOnClickHandler(int touchX, int touchY)
+    {
+        float ptcX = touchX - x;
+        value = (maxValue - minValue) / (float)w * ptcX;
     }
 };

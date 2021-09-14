@@ -93,6 +93,6 @@ private:
     TFTLIB *_tft;
     XPT2046_Touchscreen *_ts;
     Control *_controls[MAXCONTROLS];
-    uint16_t touchDelay = 500;
+    uint16_t touchDelay = 250;
     unsigned long lastTouch = 0;
 };
