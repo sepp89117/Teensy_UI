@@ -1,3 +1,9 @@
+/*
+ * Author: https://github.com/sepp89117/
+ * Source: https://github.com/sepp89117/Teensy_UI
+ * Date: 2021-09-17
+*/
+
 #include "Arduino.h"
 #include "Control.h"
 
@@ -21,17 +27,15 @@ public:
 
     BUI(){};
 
-    void init(uint16_t bgColor = 0xFFFF)
+    void init()
     {
         for (uint16_t i = 0; i < MAXCONTROLS; i++)
         {
             _controls[i] = new Control;
         }
-
-        _bgColor = bgColor;
     }
 
-    void setBgColor(uint16_t bgColor)
+    void setBackColor(uint16_t bgColor)
     {
         _bgColor = bgColor;
     }
@@ -61,15 +65,18 @@ public:
         _tft->fillScreen(_bgColor);
 
         TS_Point p;
-        unsigned long now = millis();
         bool oneIsTouched = false;
+        uint32_t now = millis();
 
-        if (_ts->touched() && now - lastTouch >= touchDelay)
+        if (_ts->touched())
         {
-            lastTouch = millis();
-            p = _ts->getPoint();
-            p.x = map(p.x, TS_MINX, TS_MAXX, 0, _tft->width());
-            p.y = map(p.y, TS_MINY, TS_MAXY, 0, _tft->height());
+            if (now - lastTouch >= touchDelay || (lastTouchedType == SLIDER && now - lastTouch >= sliderTouchDelay)) // 
+            {
+                lastTouch = millis();
+                p = _ts->getPoint();
+                p.x = map(p.x, TS_MINX, TS_MAXX, 0, _tft->width());
+                p.y = map(p.y, TS_MINY, TS_MAXY, 0, _tft->height());
+            }
         }
 
         for (uint16_t i = 0; i < MAXCONTROLS; i++)
@@ -78,14 +85,27 @@ public:
             {
                 if (_controls[i]->getType() != UNDEFINED)
                 {
-                    if(!oneIsTouched) oneIsTouched = _controls[i]->checkTouched(p.x, p.y, p.z);
-                    else break;
+                    if (!oneIsTouched)
+                    {
+                        oneIsTouched = _controls[i]->checkTouched(p.x, p.y, p.z);
+                        
+                        if (oneIsTouched)
+                        {
+                            lastTouchedType = _controls[i]->getType();
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+
                     _controls[i]->draw(_tft);
                 }
             }
         }
 
-        if(!oneIsTouched) _tft->updateScreen();
+        if (!oneIsTouched)
+            _tft->updateScreen();
     };
 
 private:
@@ -93,6 +113,8 @@ private:
     TFTLIB *_tft;
     XPT2046_Touchscreen *_ts;
     Control *_controls[MAXCONTROLS];
-    uint16_t touchDelay = 250;
-    unsigned long lastTouch = 0;
+    uint32_t touchDelay = 250;
+    uint32_t sliderTouchDelay = 33; //check sliders touch around 30 times per second for smooth movement
+    uint32_t lastTouch = 0;
+    uint8_t lastTouchedType = UNDEFINED;
 };
