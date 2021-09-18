@@ -32,8 +32,8 @@ BUI ui = BUI(&tft, &ts);
 
 //ui buttons
 void btn1_onClickHandler(); //predefine handler1 for add handler in btn1 definition
-Button btn1 = Button(10, 270, 100, 30, (char *)"Settings", &btn1_onClickHandler);
-Button btnMain = Button(10, 270, 100, 30, (char *)"Main");
+Button btn1 = Button(10, 280, 100, 30, (char *)"Settings", &btn1_onClickHandler);
+Button btnMain = Button(10, 280, 100, 30, (char *)"Main");
 
 //ui labels
 Label lblTitleMain = Label(10, 10, (char *)"Main screen", Arial_32);
@@ -43,12 +43,13 @@ Label lblMillis = Label(300, 100, (char *)"0", Arial_12);
 
 //ui checkbox
 CheckBox cb1 = CheckBox(10, 100, (char *)"Show millis on main screen");
+CheckBox cb2 = CheckBox(10, 125, (char *)"Enable darkmode", &cb2_onClickHandler);
 
 //ui slider
-Slider sl1 = Slider(10, 150, 300, 24, 0, 100);
+Slider sl1 = Slider(10, 175, 300, 24, 0, 100);
 
 //ui numericUpDown
-NumericUpDown numUD = NumericUpDown(10, 200, 100, 32, -10, 10);
+NumericUpDown numUD = NumericUpDown(10, 225, 100, 32, -10, 10);
 
 void setup()
 {
@@ -68,7 +69,7 @@ void setup()
   cb1.setFont(Arial_14);
   
   //[optional] set background color of ui once
-  ui.setBackColor(0xF75D); //default is white (0xFFFF)
+  //ui.setBackColor(0x033F); //default is white (0xFFFF)
   
   //[optional] set btn1 to different colors
   btn1.foreColor = 0xF000; //0xF000 = darker red
@@ -79,7 +80,7 @@ void setup()
 
   //[optional] set handler on btn3 dynamically
   btnMain.setOnClickHandler(&btnMain_onClickHandler); 
-  
+
   //start with some screen
   getMainScreen();
 }
@@ -124,6 +125,7 @@ void get2ndScreen()
   //[important] Add controls to ui
   ui.addControl(&lblTitle2nd);
   ui.addControl(&cb1);
+  ui.addControl(&cb2);
   ui.addControl(&sl1);
   ui.addControl(&numUD);
   ui.addControl(&btnMain);
@@ -140,4 +142,9 @@ void btn1_onClickHandler()
 void btnMain_onClickHandler()
 {
   getMainScreen();
+}
+
+void cb2_onClickHandler()
+{
+  ui.enableDarkmode(cb2.checked);
 }
