@@ -6,6 +6,7 @@ CheckBox	KEYWORD1
 Slider	KEYWORD1
 NumericUpDown   KEYWORD1
 
+calibrateTouch	KEYWORD2
 setPosition	KEYWORD2
 setOnClickHandler	KEYWORD2
 setFont	KEYWORD2
@@ -18,6 +19,7 @@ checked	KEYWORD2
 minValue	KEYWORD2
 maxValue	KEYWORD2
 setValue	KEYWORD2
+enableDarkmode	KEYWORD2
 
 UNDEFINED	LITERAL1
 BUTTON	LITERAL1

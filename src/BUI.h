@@ -9,12 +9,6 @@
 
 class BUI
 {
-//Touchscreen calibration
-#define TS_MINX 3800
-#define TS_MINY 190
-#define TS_MAXX 120
-#define TS_MAXY 3800
-
 //Maximum controls per Window
 #define MAXCONTROLS 20
 
@@ -23,6 +17,8 @@ public:
     {
         _tft = tft;
         _ts = ts;
+
+        _tft->useFrameBuffer(true);
     };
 
     BUI(){};
@@ -40,7 +36,7 @@ public:
         _bgColor = bgColor;
     }
 
-    void addControl(Control *control)
+    bool addControl(Control *control)
     {
         for (uint16_t i = 0; i < MAXCONTROLS; i++)
         {
@@ -49,15 +45,17 @@ public:
                 if (_controls[i]->getType() == UNDEFINED)
                 {
                     _controls[i] = control;
-                    break;
+                    return true;
                 }
             }
             else
             {
                 _controls[i] = control;
-                break;
+                return true;
             }
         }
+
+        return false;
     }
 
     void update()
@@ -65,14 +63,15 @@ public:
         _tft->fillScreen(_bgColor);
 
         TS_Point p;
-        bool oneIsTouched = false;
         uint32_t now = millis();
 
         if (_ts->touched())
         {
-            if (now - lastTouch >= touchDelay || (lastTouchedType == SLIDER && now - lastTouch >= sliderTouchDelay)) // 
+            if (now - lastTouch >= touchDelay || (lastTouchedType == SLIDER && now - lastTouch >= shortTouchDelay)) //
             {
                 lastTouch = millis();
+                lastTouchedType = UNDEFINED;
+
                 p = _ts->getPoint();
                 p.x = map(p.x, TS_MINX, TS_MAXX, 0, _tft->width());
                 p.y = map(p.y, TS_MINY, TS_MAXY, 0, _tft->height());
@@ -85,36 +84,47 @@ public:
             {
                 if (_controls[i]->getType() != UNDEFINED)
                 {
-                    if (!oneIsTouched)
+                    if (_controls[i]->checkTouched(p.x, p.y, p.z))
                     {
-                        oneIsTouched = _controls[i]->checkTouched(p.x, p.y, p.z);
-                        
-                        if (oneIsTouched)
-                        {
-                            lastTouchedType = _controls[i]->getType();
-                        }
-                    }
-                    else
-                    {
-                        break;
+                        lastTouchedType = _controls[i]->getType();
+
+                        _controls[i]->internalOnClickHandler(p.x, p.y);
+
+                        if (_controls[i]->clickHandler != nullptr)
+                            _controls[i]->clickHandler();
+
+                        return;
                     }
 
+                    _controls[i]->enableDarkmode(darkMode);
                     _controls[i]->draw(_tft);
                 }
             }
         }
 
-        if (!oneIsTouched)
-            _tft->updateScreen();
+        _tft->updateScreen();
     };
 
+    void enableDarkmode(bool enable)
+    {
+        enable ? _bgColor = 0x0000 : _bgColor = 0xFFFF;
+        darkMode = enable;
+    }
+
 private:
+    //Touchscreen calibration
+    uint16_t TS_MINX = 3800;
+    uint16_t TS_MINY = 190;
+    uint16_t TS_MAXX = 120;
+    uint16_t TS_MAXY = 3800;
+
     uint16_t _bgColor = 0xFFFF;
     TFTLIB *_tft;
     XPT2046_Touchscreen *_ts;
     Control *_controls[MAXCONTROLS];
     uint32_t touchDelay = 250;
-    uint32_t sliderTouchDelay = 33; //check sliders touch around 30 times per second for smooth movement
+    uint32_t shortTouchDelay = 33; //33ms = check sliders touch around 30 times per second for smooth movement
     uint32_t lastTouch = 0;
     uint8_t lastTouchedType = UNDEFINED;
+    bool darkMode = false;
 };

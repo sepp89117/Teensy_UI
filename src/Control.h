@@ -5,7 +5,7 @@
 */
 
 class Control
-{
+{    
 //define tft-libs
 #if defined(_ILI9486_t3NH_)
 #define TFTLIB ILI9486_t3n
@@ -25,18 +25,16 @@ class Control
 #define SLIDER 4
 #define NUMUD 5
 
+friend class BUI;
+
 public:
     uint16_t x = 0;
     uint16_t y = 0;
     bool enabled = true;
     uint16_t foreColor = 0x0000;
-    uint16_t backColor = 0xF79E;
+    uint16_t backColor = 0xFFDF;
 
     Control(){};
-
-    virtual void draw(TFTLIB *tft){
-
-    };
 
     void setPosition(uint16_t xPos, uint16_t yPos)
     {
@@ -65,24 +63,6 @@ public:
         return type;
     }
 
-    bool checkTouched(int touchX, int touchY, int touchZ)
-    {
-        _isTouched = false;
-
-        if (enabled && touchX >= x && touchX <= x + w && touchY >= y && touchY <= y + h && touchZ > 0)
-        {
-            _isTouched = true;
-            internalOnClickHandler(touchX, touchY);
-
-            if (clickHandler != nullptr)
-            {
-                clickHandler();
-            }
-        }
-
-        return _isTouched;
-    }
-
 protected:
     uint16_t w = 50;
     uint16_t h = 20;
@@ -92,6 +72,39 @@ protected:
     bool _isTouched = false;
     void (*clickHandler)() = nullptr;
     uint8_t type = UNDEFINED;
+    bool darkMode = false;
+
+    bool checkTouched(int touchX, int touchY, int touchZ)
+    {
+        _isTouched = false;
+
+        if (enabled && touchX >= x && touchX <= x + w && touchY >= y && touchY <= y + h && touchZ > 0)
+        {
+            _isTouched = true;
+        }
+
+        return _isTouched;
+    }
+
+    void enableDarkmode(bool enable)
+    {
+        darkMode = enable;
+
+        if (darkMode)
+        {
+            backColor = 0x0000;
+            foreColor = 0xFFDF;
+        }
+        else
+        {
+            backColor = 0xFFDF;
+            foreColor = 0x0000;
+        }
+    }
+
+    virtual void draw(TFTLIB *tft){
+
+    };
 
     virtual void internalOnClickHandler(int touchX, int touchY) {}
 
@@ -151,7 +164,7 @@ public:
     {
         type = BUTTON;
     };
-    
+
     Button(int xPos, int yPos, int width, int height, char *text = (char *)"Button", void (*function)() = nullptr)
     {
         x = xPos;
@@ -163,8 +176,20 @@ public:
         clickHandler = function;
     };
 
+protected:
     void draw(TFTLIB *tft) override
     {
+        if (darkMode)
+        {
+            myBackColor = 0x6B4D;
+            myForeColor = 0xFFFF;
+        }
+        else
+        {
+            myBackColor = backColor;
+            myForeColor = foreColor;
+        }
+
         tft->setFont(f);
         int tXsize = tft->strPixelLen(t);
         int darken = 0;
@@ -189,28 +214,32 @@ public:
 
         //shape of button
         //upper half background
-        tft->fillRect(x + 2, y + 2, w - 4, h / 2 - 2, colorBrigthness(backColor, darken));
+        tft->fillRect(x + 2, y + 2, w - 4, h / 2 - 2, colorBrigthness(myBackColor, darken));
         //lower half background
-        tft->fillRect(x + 2, y + h / 2, w - 4, h / 2 - 2, colorBrigthness(backColor, -25 + darken));
+        tft->fillRect(x + 2, y + h / 2, w - 4, h / 2 - 2, colorBrigthness(myBackColor, -25 + darken));
         //transition between the two halves
-        tft->drawLine(x + 2, y + h / 2, x + w - 2, y + h / 2, colorBrigthness(backColor, -8 + darken));
-        tft->drawLine(x + 2, y + 1 + h / 2, x + w - 2, y + 1 + h / 2, colorBrigthness(backColor, -16 + darken));
+        tft->drawLine(x + 2, y + h / 2, x + w - 2, y + h / 2, colorBrigthness(myBackColor, -8 + darken));
+        tft->drawLine(x + 2, y + 1 + h / 2, x + w - 2, y + 1 + h / 2, colorBrigthness(myBackColor, -16 + darken));
         //inner border
-        tft->drawRoundRect(x + 1, y + 1, w - 2, h - 2, 2, colorBrigthness(backColor, +11 + darken));
+        tft->drawRoundRect(x + 1, y + 1, w - 2, h - 2, 2, colorBrigthness(myBackColor, 11 + darken));
         //outer border
-        tft->drawRoundRect(x, y, w, h, 3, colorBrigthness(backColor, -55 + darken));
+        tft->drawRoundRect(x, y, w, h, 3, colorBrigthness(myBackColor, -55 + darken));
 
         //Text
         if (sizeof(t) > 1)
         {
             tft->setCursor(x + (w / 2) - (tXsize / 2), y + ((h - fH) / 2) + 1);
             if (enabled)
-                tft->setTextColor(foreColor);
+                tft->setTextColor(myForeColor);
             else
                 tft->setTextColor(0xA534);
             tft->print(t);
         }
     }
+
+private:
+    uint16_t myForeColor = 0x0000;
+    uint16_t myBackColor = 0xF79E;
 };
 
 class Label : public Control
@@ -220,7 +249,7 @@ public:
     {
         type = LABEL;
     };
-    
+
     Label(int xPos, int yPos, char *text = (char *)"Label", FONTS font = Arial_12)
     {
         x = xPos;
@@ -230,6 +259,7 @@ public:
         f = font;
     };
 
+protected:
     void draw(TFTLIB *tft) override
     {
         tft->setFont(f);
@@ -248,7 +278,7 @@ public:
     {
         type = CHECKBOX;
     };
-    
+
     CheckBox(int xPos, int yPos, char *text = (char *)"CheckBox", void (*function)() = nullptr, FONTS font = Arial_12)
     {
         x = xPos;
@@ -261,34 +291,49 @@ public:
         clickHandler = function;
     };
 
+protected:
     void draw(TFTLIB *tft) override
     {
+        if (darkMode)
+        {
+            myBackColor = 0x6B4D;
+            myForeColor = 0xFFFF;
+        }
+        else
+        {
+            myBackColor = backColor;
+            myForeColor = foreColor;
+        }
+
         tft->setFont(f);
 
         //the box
-        tft->fillRect(x, y, 16, 16, backColor);
-        tft->drawRect(x, y, 16, 16, foreColor);
+        tft->fillRect(x, y, 16, 16, myBackColor);
+        tft->drawRect(x, y, 16, 16, myForeColor);
 
         //the hook
         if (checked)
         {
-            tft->drawLine(x + 2, y + 7, x + 6, y + 11, foreColor);
-            tft->drawLine(x + 3, y + 7, x + 6, y + 10, foreColor);
-            tft->drawLine(x + 7, y + 9, x + 12, y + 4, foreColor);
-            tft->drawLine(x + 7, y + 10, x + 13, y + 4, foreColor);
+            tft->drawLine(x + 2, y + 7, x + 6, y + 11, myForeColor);
+            tft->drawLine(x + 3, y + 7, x + 6, y + 10, myForeColor);
+            tft->drawLine(x + 7, y + 9, x + 12, y + 4, myForeColor);
+            tft->drawLine(x + 7, y + 10, x + 13, y + 4, myForeColor);
         }
 
         //the label
-        tft->setTextColor(foreColor);
+        tft->setTextColor(myForeColor);
         tft->setCursor(x + 22, y + ((h - fH) / 2) + 1);
         tft->print(t);
     }
 
-protected:
     void internalOnClickHandler(int touchX, int touchY)
     {
         checked = !checked;
     }
+
+private:
+    uint16_t myForeColor = 0x0000;
+    uint16_t myBackColor = 0xFFDF;
 };
 
 class Slider : public Control
@@ -296,13 +341,12 @@ class Slider : public Control
 public:
     float minValue = 0;
     float maxValue = 100;
-    float value = 0;
 
     Slider()
     {
         type = SLIDER;
     };
-    
+
     Slider(int xPos, int yPos, int width, int height, int min, int max, void (*function)() = nullptr)
     {
         x = xPos;
@@ -313,37 +357,69 @@ public:
         maxValue = max;
         clickHandler = function;
         value = min;
-        t = (char *)"\0";
         type = SLIDER;
     };
 
-    void draw(TFTLIB *tft) override
-    {
-        //bar + outline
-        tft->fillRoundRect(x, y + h / 4, w, h / 2, h / 4, colorBrigthness(backColor, 0));
-        tft->drawRoundRect(x, y + h / 4, w, h / 2, h / 4, colorBrigthness(backColor, -55));
-        //sliding dot
-        if (_isTouched)
-            tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(backColor, -21));
-        else
-            tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(backColor, -11));
-        //sliding dot inner border
-        tft->drawCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2 - 1, colorBrigthness(backColor, +11));
-        //sliding dot outer border
-        tft->drawCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(backColor, -55));
-    }
-
     void setValue(float Value)
     {
-        if(Value <= maxValue && Value >= minValue) value = Value;
+        if (Value <= maxValue && Value >= minValue)
+            value = Value;
     }
 
 protected:
+    void draw(TFTLIB *tft) override
+    {
+        if (darkMode)
+        {
+            myBackColor = 0x6B4D;
+        }
+        else
+        {
+            myBackColor = backColor;
+        }
+
+        //bar + outline
+        tft->fillRoundRect(x, y + h / 4, w, h / 2, h / 4, colorBrigthness(myBackColor, 0));
+        tft->drawRoundRect(x, y + h / 4, w, h / 2, h / 4, colorBrigthness(myBackColor, -55));
+        
+        if (darkMode)
+        {
+            //sliding dot
+            if (_isTouched)
+                tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(myBackColor, 0));
+            else
+                tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(myBackColor, 20));
+            
+            //sliding dot inner border
+            tft->drawCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2 - 1, colorBrigthness(myBackColor, 40));
+            //sliding dot outer border
+            tft->drawCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(myBackColor, -35));
+        }
+        else
+        {
+            //sliding dot
+            if (_isTouched)
+                tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(myBackColor, -21));
+            else
+                tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(myBackColor, -11));
+            
+            //sliding dot inner border
+            tft->drawCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2 - 1, colorBrigthness(myBackColor, 11));
+            //sliding dot outer border
+            tft->drawCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(myBackColor, -55));
+        }
+        
+    }
+
     void internalOnClickHandler(int touchX, int touchY)
     {
         float ptcX = touchX - x;
         value = (maxValue - minValue) / (float)w * ptcX;
     }
+
+private:
+    float value = 0;
+    uint16_t myBackColor = 0xF79E;
 };
 
 class NumericUpDown : public Control
@@ -351,20 +427,24 @@ class NumericUpDown : public Control
 public:
     int minValue = 0;
     int maxValue = 100;
-    
+
     NumericUpDown()
     {
         type = NUMUD;
     };
-    
+
     NumericUpDown(int xPos, int yPos, int width, int height, int min, int max, void (*function)() = nullptr)
     {
         x = xPos;
         y = yPos;
-        if(width >= 48) w = width;
-        else w = 48;
-        if(height >= 24) h = height;
-        else h = 24;
+        if (width >= 48)
+            w = width;
+        else
+            w = 48;
+        if (height >= 24)
+            h = height;
+        else
+            h = 24;
         minValue = min;
         maxValue = max;
         clickHandler = function;
@@ -373,36 +453,46 @@ public:
         type = NUMUD;
     };
 
+    void setValue(int Value)
+    {
+        if (Value <= maxValue && Value >= minValue)
+            value = Value;
+    }
+
+protected:
     void draw(TFTLIB *tft) override
     {
+        if (darkMode)
+        {
+            myBackColor = 0x6B4D;
+            myForeColor = 0xFFFF;
+        }
+        else
+        {
+            myBackColor = backColor;
+            myForeColor = foreColor;
+        }
+
         //background
-        tft->fillRect(x, y, w, h, colorBrigthness(backColor, 0));
+        tft->fillRect(x, y, w, h, colorBrigthness(myBackColor, 0));
         //border
-        tft->drawRect(x, y, w, h, colorBrigthness(backColor, -55));
-        tft->drawRect(x + 1, y + 1, w - 2, h - 2, colorBrigthness(backColor, -20));
+        tft->drawRect(x, y, w, h, colorBrigthness(myBackColor, -55));
+        tft->drawRect(x + 1, y + 1, w - 2, h - 2, colorBrigthness(myBackColor, -20));
 
         //value
         tft->drawNumber(value, x + 5, y + ((h - fH) / 2) + 1);
 
         //up-button
-        tft->fillRect(x + w - h, y, h, h / 2, colorBrigthness(backColor, -8));
-        tft->drawRect(x + w - h, y, h, h / 2, colorBrigthness(backColor, -55));
+        tft->fillRect(x + w - h, y, h, h / 2, colorBrigthness(myBackColor, -8));
+        tft->drawRect(x + w - h, y, h, h / 2, colorBrigthness(myBackColor, -55));
         //up-arrow
-        tft->fillTriangle(x + w - h / 2, y + h / 6, x + w - h / 3, y + h / 3, x + w - (float)h / 3.0f * 2.0f, y + h / 3, foreColor);
+        tft->fillTriangle(x + w - h / 2, y + h / 6, x + w - h / 3, y + h / 3, x + w - (float)h / 3.0f * 2.0f, y + h / 3, myForeColor);
         //down-button
-        tft->fillRect(x + w - h, y + h / 2, h, h / 2, colorBrigthness(backColor, -8));
-        tft->drawRect(x + w - h, y + h / 2, h, h / 2, colorBrigthness(backColor, -55));
+        tft->fillRect(x + w - h, y + h / 2, h, h / 2, colorBrigthness(myBackColor, -8));
+        tft->drawRect(x + w - h, y + h / 2, h, h / 2, colorBrigthness(myBackColor, -55));
         //down-arrow
-        tft->fillTriangle(x + w - h / 2, y + (float)h / 6.0f * 5.0f, x + w - h / 3, y + (float)h / 6.0f * 4.0f, x + w - (float)h / 3.0f * 2.0f, y + (float)h / 6.0f * 4.0f, foreColor);
+        tft->fillTriangle(x + w - h / 2, y + (float)h / 6.0f * 5.0f, x + w - h / 3, y + (float)h / 6.0f * 4.0f, x + w - (float)h / 3.0f * 2.0f, y + (float)h / 6.0f * 4.0f, myForeColor);
     }
-
-    void setValue(int Value)
-    {
-        if(Value <= maxValue && Value >= minValue) value = Value;
-    }
-
-protected:
-    int value = 0;
 
     void internalOnClickHandler(int touchX, int touchY)
     {
@@ -416,13 +506,20 @@ protected:
             if (ptcY <= h / 2)
             {
                 //up touched
-                if(value < maxValue) value++;
+                if (value < maxValue)
+                    value++;
             }
             else
             {
                 //down touched
-                if(value > minValue) value--;
+                if (value > minValue)
+                    value--;
             }
         }
     }
+
+private:
+    int value = 0;
+    uint16_t myForeColor = 0x0000;
+    uint16_t myBackColor = 0xFFDF;
 };
