@@ -91,9 +91,10 @@ public:
                         _controls[i]->internalOnClickHandler(p.x, p.y);
 
                         if (_controls[i]->clickHandler != nullptr)
+                        {
                             _controls[i]->clickHandler();
-
-                        return;
+                            return;
+                        }
                     }
 
                     _controls[i]->enableDarkmode(darkMode);

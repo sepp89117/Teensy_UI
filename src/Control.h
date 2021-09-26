@@ -5,7 +5,7 @@
 */
 
 class Control
-{    
+{
 //define tft-libs
 #if defined(_ILI9486_t3NH_)
 #define TFTLIB ILI9486_t3n
@@ -24,8 +24,10 @@ class Control
 #define CHECKBOX 3
 #define SLIDER 4
 #define NUMUD 5
+#define BARGRAPH 6
+#define DONUTGRAPH 7
 
-friend class BUI;
+    friend class BUI;
 
 public:
     uint16_t x = 0;
@@ -366,6 +368,11 @@ public:
             value = Value;
     }
 
+    float getValue()
+    {
+        return value;
+    }
+
 protected:
     void draw(TFTLIB *tft) override
     {
@@ -381,15 +388,15 @@ protected:
         //bar + outline
         tft->fillRoundRect(x, y + h / 4, w, h / 2, h / 4, colorBrigthness(myBackColor, 0));
         tft->drawRoundRect(x, y + h / 4, w, h / 2, h / 4, colorBrigthness(myBackColor, -55));
-        
+
         if (darkMode)
         {
             //sliding dot
             if (_isTouched)
-                tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(myBackColor, 0));
+                tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(myBackColor, 40));
             else
-                tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(myBackColor, 20));
-            
+                tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(myBackColor, 60));
+
             //sliding dot inner border
             tft->drawCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2 - 1, colorBrigthness(myBackColor, 40));
             //sliding dot outer border
@@ -402,13 +409,12 @@ protected:
                 tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(myBackColor, -21));
             else
                 tft->fillCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(myBackColor, -11));
-            
+
             //sliding dot inner border
             tft->drawCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2 - 1, colorBrigthness(myBackColor, 11));
             //sliding dot outer border
             tft->drawCircle(((w - h / 2) / (maxValue - minValue) * value) + h / 2 + x, y + h / 2, h / 2, colorBrigthness(myBackColor, -55));
         }
-        
     }
 
     void internalOnClickHandler(int touchX, int touchY)
@@ -473,6 +479,9 @@ protected:
             myForeColor = foreColor;
         }
 
+        tft->setFont(f);
+        tft->setTextColor(myForeColor);
+
         //background
         tft->fillRect(x, y, w, h, colorBrigthness(myBackColor, 0));
         //border
@@ -522,4 +531,412 @@ private:
     int value = 0;
     uint16_t myForeColor = 0x0000;
     uint16_t myBackColor = 0xFFDF;
+};
+
+class BarGraph : public Control
+{
+public:
+    struct valueColor
+    {
+        float value;
+        uint16_t color;
+        bool isSet = false;
+    };
+    float minValue = 0;
+    float maxValue = 100;
+
+    BarGraph()
+    {
+        type = BARGRAPH;
+    };
+
+    BarGraph(int xPos, int yPos, int width, int height, int min, int max, uint16_t barBaseColor, char *title, void (*function)() = nullptr)
+    {
+        x = xPos;
+        y = yPos;
+        if (width >= 40)
+            w = width;
+        else
+            w = 40;
+        if (height >= 100)
+            h = height;
+        else
+            h = 100;
+        minValue = min;
+        maxValue = max;
+        t = title;
+        clickHandler = function;
+        value = min;
+        type = BARGRAPH;
+
+        valueColors[0].value = min;
+        valueColors[0].color = barBaseColor;
+        valueColors[0].isSet = true;
+    };
+
+    void setValue(float Value)
+    {
+        if (Value <= maxValue && Value >= minValue)
+            value = Value;
+    }
+
+    //Maximum 5 valueColors, but first one is set by init BarGrap (min, barBaseColor)
+    bool addValueColor(float value, uint16_t color)
+    {
+        for (uint8_t i = 0; i < 5; i++)
+        {
+            if (!valueColors[i].isSet)
+            {
+                valueColors[i].value = value;
+                valueColors[i].color = color;
+                valueColors[i].isSet = true;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+protected:
+    void draw(TFTLIB *tft) override
+    {
+        if (darkMode)
+        {
+            myBackColor = 0x6B4D;
+            myForeColor = 0xFFFF;
+        }
+        else
+        {
+            myBackColor = backColor;
+            myForeColor = foreColor;
+        }
+
+        float deltaMinMax = abs(maxValue - minValue);
+        float stepWidth = (h - 26.0f) / deltaMinMax;
+        int divisors = 6.0f;
+
+        tft->drawLine(x + 23, y + 23, x + 23, y + h - 5, myForeColor);   //Y-Left-Line
+        tft->drawLine(x + 23, y + h - 5, x + w, y + h - 5, myForeColor); //X-Bottom-Line
+
+        //Title
+        tft->setTextColor(myForeColor);
+        tft->setFont(Arial_12_Bold);
+        int tXsize = tft->strPixelLen(t);
+        tft->setCursor(x + w / 2 - tXsize / 2, y);
+        tft->print(t);
+
+        //Scale values and divisors
+        tft->setFont(Arial_10);
+        for (int i = 0; i < divisors + 1; i++)
+        {
+            int scaleValue = (deltaMinMax / (float)divisors * (float)i) + minValue;
+            char buf[11];
+            itoa(scaleValue, buf, 10);
+            tXsize = tft->strPixelLen(buf);
+            tft->setCursor(x + 17 - tXsize, y + h - 10 - (i * (h - 28) / (float)divisors));
+            tft->print(scaleValue);
+
+            tft->drawLine(x + 19, y + h - 5 - (i * (h - 28) / (float)divisors), x + 22, y + h - 5 - (i * (h - 28) / (float)divisors), myForeColor); //Y-Divisor
+        }
+
+        //Bar
+        tft->fillRect(x + 25, y + (h - 5) + -1 * ((value - minValue) * stepWidth), w - 25, (value - minValue) * stepWidth, valueColors[0].color);
+        for (uint8_t i = 1; i < 5; i++)
+        {
+            if (valueColors[i].isSet)
+            {
+                if (value >= valueColors[i].value)
+                {
+                    tft->fillRect(x + 25, y + (h - 5) + -1 * ((value - minValue) * stepWidth), w - 25, ((value - minValue) * stepWidth) - ((valueColors[i].value - minValue) * stepWidth), valueColors[i].color); //yellow bar
+                }
+            }
+        }
+    }
+
+    void internalOnClickHandler(int touchX, int touchY)
+    {
+        
+    }
+
+private:
+    float value = 0;
+    uint16_t myForeColor = 0x0000;
+    uint16_t myBackColor = 0xF79E;
+    valueColor valueColors[5];
+};
+
+class DonutGraph : public Control
+{
+public:
+    struct valueColor
+    {
+        float value;
+        uint16_t color;
+        bool isSet = false;
+    };
+    float minValue = 0;
+    float maxValue = 100;
+    char* unitName = (char*)"\0";
+
+    DonutGraph()
+    {
+        type = DONUTGRAPH;
+    };
+
+    DonutGraph(int xPos, int yPos, int min, int max, uint16_t barBaseColor, char *title, void (*function)() = nullptr)
+    {
+        x = xPos;
+        y = yPos;
+        w = 156;
+        h = 120;
+        minValue = min;
+        maxValue = max;
+        t = title;
+        clickHandler = function;
+        value = min;
+        type = DONUTGRAPH;
+
+        valueColors[0].value = min;
+        valueColors[0].color = barBaseColor;
+        valueColors[0].isSet = true;
+    };
+
+    void setValue(float Value)
+    {
+        if (Value <= maxValue && Value >= minValue)
+            value = Value;
+    }
+
+    //Maximum 5 valueColors, but first one is set by init BarGrap (min, barBaseColor)
+    bool addValueColor(float value, uint16_t color)
+    {
+        for (uint8_t i = 0; i < 5; i++)
+        {
+            if (!valueColors[i].isSet)
+            {
+                valueColors[i].value = value;
+                valueColors[i].color = color;
+                valueColors[i].isSet = true;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+protected:
+    void draw(TFTLIB *tft) override
+    {
+        if (darkMode)
+        {
+            myBackColor = 0x2945;
+            myForeColor = 0xFFFF;
+        }
+        else
+        {
+            myBackColor = 0x4228;
+            myForeColor = 0xFFFF;
+        }
+
+        int r = 65;
+        int centerX = x + w / 2;
+        int centerY = y + 82;
+        float deltaVal = abs(maxValue - minValue);
+
+        //background
+        tft->fillRoundRect(x, y, w, h, 4, myBackColor);
+
+        //border right b+60
+        tft->drawLine(x + w - 2, y + 1, x + w - 2, y + h - 2, colorBrigthness(myBackColor, 60));
+        tft->drawLine(x + w - 1, y + 3, x + w - 1, y + h - 5, colorBrigthness(myBackColor, 60));
+        tft->drawPixel(x + w - 3, y + 2, colorBrigthness(myBackColor, 95));
+        //border bottom b+35
+        tft->drawLine(x + 3, y + h - 1, x + w - 4, y + h - 1, colorBrigthness(myBackColor, 35));
+        tft->drawLine(x + 1, y + h - 2, x + w - 2, y + h - 2, colorBrigthness(myBackColor, 35));
+        tft->drawPixel(x + w - 3, y + h - 3, colorBrigthness(myBackColor, 48));
+        //border left b+135
+        tft->drawLine(x, y + 3, x, y + h - 5, colorBrigthness(myBackColor, 135));
+        tft->drawLine(x + 1, y + 1, x + 1, y + h - 2, colorBrigthness(myBackColor, 135));
+        tft->drawPixel(x + 2, y + h - 3, colorBrigthness(myBackColor, 85));
+        //border top b+180
+        tft->drawLine(x + 3, y, x + w - 4, y, colorBrigthness(myBackColor, 180));
+        tft->drawLine(x + 1, y + 1, x + w - 2, y + 1, colorBrigthness(myBackColor, 180));
+        tft->drawPixel(x + 2, y + 2, colorBrigthness(myBackColor, 158));
+
+        //half circle fill black background       
+        float stepW = 0.4;
+        int x1, y1, x2, y2, x3, y3, x4, y4;
+
+        for (float i = 0.0f; i < 180.0f; i += stepW)
+        {
+            getCircleCoord(centerX, centerY, r - 16, -180.0f + i, x1, y1);
+            getCircleCoord(centerX, centerY, r - 16, -180.0f + i + 1, x4, y4);
+            getCircleCoord(centerX, centerY, r - 1, -180.0f + i, x2, y2);
+            getCircleCoord(centerX, centerY, r - 1, -180.0f + i + 1, x3, y3);
+
+            tft->fillTriangle(x1, y1, x2, y2, x3, y3, 0x0000);
+            tft->fillTriangle(x1, y1, x2, y2, x4, y4, 0x0000);
+        }
+
+        //outer half circle
+        tft->drawCircleHelper(centerX, centerY, r, 1, colorBrigthness(myBackColor, 70));
+        tft->drawCircleHelper(centerX, centerY, r, 2, colorBrigthness(myBackColor, 70));
+        tft->drawPixel(centerX - r, centerY,colorBrigthness(myBackColor, 70));
+        tft->drawPixel(centerX + r, centerY,colorBrigthness(myBackColor, 70));
+        tft->drawPixel(centerX, centerY-r,colorBrigthness(myBackColor, 70));
+        tft->drawCircleHelper(centerX, centerY, r - 1, 1, colorBrigthness(myBackColor, 100));
+        tft->drawCircleHelper(centerX, centerY, r - 1, 2, colorBrigthness(myBackColor, 100));
+        tft->drawPixel(centerX - r+1, centerY,colorBrigthness(myBackColor, 100));
+        tft->drawPixel(centerX + r-1, centerY,colorBrigthness(myBackColor, 100));
+        tft->drawPixel(centerX, centerY-r+1,colorBrigthness(myBackColor, 100));
+
+        //inner half circle
+        tft->drawCircleHelper(centerX, centerY, r - 16, 1, colorBrigthness(myBackColor, 70));
+        tft->drawCircleHelper(centerX, centerY, r - 16, 2, colorBrigthness(myBackColor, 70));
+        tft->drawPixel(centerX - r+16, centerY,colorBrigthness(myBackColor, 70));
+        tft->drawPixel(centerX + r-16, centerY,colorBrigthness(myBackColor, 70));
+        tft->drawPixel(centerX, centerY-r+16,colorBrigthness(myBackColor, 70));
+        tft->drawCircleHelper(centerX, centerY, r - 17, 1, colorBrigthness(myBackColor, 40));
+        tft->drawCircleHelper(centerX, centerY, r - 17, 2, colorBrigthness(myBackColor, 40));
+        tft->drawPixel(centerX - r+17, centerY,colorBrigthness(myBackColor, 40));
+        tft->drawPixel(centerX + r-17, centerY,colorBrigthness(myBackColor, 40));
+        tft->drawPixel(centerX, centerY-r+17,colorBrigthness(myBackColor, 40));
+
+        for (int i = 0; i < 9; i++)
+        {
+            float angle = -180.0f / 8.0f * (float)i;
+            getCircleCoord(centerX, centerY, r - 5, angle, x1, y1);
+            getCircleCoord(centerX, centerY, r - 13, angle, x2, y2);
+
+            tft->drawLine(x1, y1, x2, y2, 0xFFFF);
+        }
+
+        uint16_t drawinColor = valueColors[0].color;
+        float valueAngle = 180.0f / deltaVal * value;
+        for (float i = 0.0f; i < valueAngle; i += stepW)
+        {
+            getCircleCoord(centerX, centerY, r - 27, -180.0f + i, x1, y1);
+            getCircleCoord(centerX, centerY, r - 27, -180.0f + i + 1, x4, y4);
+            getCircleCoord(centerX, centerY, r - 16, -180.0f + i, x2, y2);
+            getCircleCoord(centerX, centerY, r - 16, -180.0f + i + 1, x3, y3);
+
+            //get color to draw            
+            for (uint8_t c = 1; c < 5; c++)
+            {
+                if (valueColors[c].isSet)
+                {
+                    float colorAngle = 180.0f / deltaVal * valueColors[c].value;
+
+                    if (i >= colorAngle) {
+                        drawinColor = valueColors[c].color;
+                    }
+                }
+            }
+
+            tft->fillTriangle(x1, y1, x2, y2, x3, y3, drawinColor);
+            tft->fillTriangle(x1, y1, x2, y2, x4, y4, drawinColor);
+        }
+
+        //print segment values
+        float valSegment = deltaVal / 8.0f;
+        int tXsize;
+        float segval;
+        bool multipl = false;
+        tft->setTextColor(myForeColor);
+        tft->setFont(Arial_11);
+        char str[14];
+        //segval 8
+        segval = maxValue;
+        ltoa(segval, str, 10);
+        if (segval > 1000) segval /= 100.0f, multipl = true;
+        tXsize = tft->strPixelLen(str);
+        tft->setCursor(x + 141 - tXsize / 2, y + 87);
+        tft->print(segval, 0);
+        //segval 6
+        tft->setCursor(x + 125, y + 25);
+        segval = valSegment * 6.0f + (float)minValue;
+        ltoa(segval, str, 10);
+        if (multipl) segval /= 100.0f;
+        tft->print(segval, 0);
+        //segval 4
+        segval = valSegment * 4.0f + (float)minValue;
+        ltoa(segval, str, 10);
+        if (multipl) segval /= 100.0f;
+        tXsize = tft->strPixelLen(str);
+        tft->setCursor(centerX - tXsize / 2, y + 5);
+        tft->print(segval, 0);
+        //segval 2
+        segval = valSegment * 2.0f + (float)minValue;
+        ltoa(segval, str, 10);
+        if (multipl) segval /= 100.0f;
+        tXsize = tft->strPixelLen(str);
+        tft->setCursor(x + 33 - tXsize, y + 25);
+        tft->print(segval, 0);
+        //segval 0
+        segval = minValue;
+        ltoa(segval, str, 10);
+        if (multipl && segval != 0) segval /= 100.0f;
+        tXsize = tft->strPixelLen(str);
+        tft->setCursor(x + 16 - tXsize / 2, y + 87);
+        tft->print(segval, 0);
+        //print multiplier
+        if (multipl) {
+            tft->setCursor(x + 119, y + 5);
+            tft->print("x100");
+        }
+
+
+        //print value
+        ltoa(value, str, 10);
+        tft->setFont(Arial_20);
+        int tXPos = centerX - tft->strPixelLen(str) / 2;
+        tft->setTextColor(drawinColor);
+        tft->setCursor(tXPos, centerY-Arial_20.cap_height/2);
+        tft->print(str);
+
+        //print text
+        tft->setTextColor(myForeColor);
+        tft->setFont(Arial_12_Bold);
+        tXPos = centerX - tft->strPixelLen(t) / 2;
+        tft->setCursor(tXPos, centerY+17);
+        tft->print(t);
+
+        //print unit name
+        tft->setTextColor(myForeColor);
+        tft->setFont(Arial_12_Bold);
+        tXPos = centerX - tft->strPixelLen(unitName) / 2;
+        tft->setCursor(tXPos, centerY-28);
+        tft->print(unitName);
+
+
+
+        //graph
+        // tft->fillRect(x + 25, y + (h - 5) + -1 * ((value - minValue) * stepWidth), w - 25, (value - minValue) * stepWidth, valueColors[0].color);
+        // for (uint8_t i = 1; i < 5; i++)
+        // {
+        //     if (valueColors[i].isSet)
+        //     {
+        //         if (value >= valueColors[i].value) {
+        //             tft->fillRect(x + 25, y + (h - 5) + -1 * ((value - minValue) * stepWidth), w - 25, ((value - minValue) * stepWidth) - ((valueColors[i].value - minValue) * stepWidth), valueColors[i].color); //yellow bar
+        //         }
+        //     }
+        // }
+    }
+
+    void internalOnClickHandler(int touchX, int touchY)
+    {
+        
+    }
+
+private:
+    float value = 0;
+    uint16_t myForeColor = 0x0000;
+    uint16_t myBackColor = 0xF79E;
+    valueColor valueColors[5];
+
+    void getCircleCoord(int centerX, int centerY, int radius, float angle, int &outX, int &outY)
+    {
+        outX = (float)centerX + cos((angle * PI) / 180.0f) * (float)radius;
+        outY = (float)centerY + sin((angle * PI) / 180.0f) * (float)radius;
+    }
 };
