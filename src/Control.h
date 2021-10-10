@@ -1,7 +1,7 @@
 /*
  * Author: https://github.com/sepp89117/
  * Source: https://github.com/sepp89117/Teensy_UI
- * Date: 2021-09-17
+ * Date: 2021-10-10
 */
 
 class Control
@@ -58,6 +58,23 @@ public:
     void setText(char *text)
     {
         t = text;
+    }
+
+    void setText(const String& text)
+    {
+        t = (char*)text.c_str();
+    }
+
+    void setText(long text)
+    {
+        ltoa(text, str, 10);
+        t = str;
+    }
+
+    void setText(float text, uint8_t strLength, uint8_t decimalPlaces)
+    {
+        dtostrf(text, strLength, decimalPlaces, str);
+        t = str;
     }
 
     uint8_t getType()
@@ -157,6 +174,9 @@ protected:
         g = (color >> 3) & 0x00FC;
         b = (color << 3) & 0x00F8;
     }
+
+private:
+    char str[14];
 };
 
 class Button : public Control
@@ -246,6 +266,10 @@ private:
 
 class Label : public Control
 {
+#define ALIGNLEFT 0
+#define ALIGNCENTER 1
+#define ALIGNRIGHT 2
+
 public:
     Label()
     {
@@ -261,12 +285,29 @@ public:
         f = font;
     };
 
+    uint8_t textAlign = ALIGNLEFT;
 protected:
     void draw(TFTLIB *tft) override
     {
         tft->setFont(f);
         tft->setTextColor(foreColor);
-        tft->setCursor(x, y);
+
+        uint16_t textWidth = tft->strPixelLen(t);
+        switch(textAlign){
+            case ALIGNLEFT:
+                tft->setCursor(x, y);
+            break;
+            case ALIGNCENTER:
+                tft->setCursor(x-textWidth/2, y);
+            break;
+            case ALIGNRIGHT:
+                tft->setCursor(x-textWidth, y);
+            break;
+            default:
+                tft->setCursor(x, y);
+        }
+        
+
         tft->print(t);
     }
 };
@@ -433,6 +474,7 @@ class NumericUpDown : public Control
 public:
     int minValue = 0;
     int maxValue = 100;
+    int decimalPlaces = 0;
 
     NumericUpDown()
     {
@@ -459,10 +501,15 @@ public:
         type = NUMUD;
     };
 
-    void setValue(int Value)
+    void setValue(float Value)
     {
         if (Value <= maxValue && Value >= minValue)
             value = Value;
+    }
+
+    float getValue()
+    {
+        return value;
     }
 
 protected:
@@ -489,7 +536,8 @@ protected:
         tft->drawRect(x + 1, y + 1, w - 2, h - 2, colorBrigthness(myBackColor, -20));
 
         //value
-        tft->drawNumber(value, x + 5, y + ((h - fH) / 2) + 1);
+        dtostrf(value, 3, decimalPlaces, valueText);
+        tft->drawString(valueText, x + 5, y + ((h - fH) / 2) + 1);
 
         //up-button
         tft->fillRect(x + w - h, y, h, h / 2, colorBrigthness(myBackColor, -8));
@@ -516,19 +564,28 @@ protected:
             {
                 //up touched
                 if (value < maxValue)
-                    value++;
+                {
+                    if(decimalPlaces == 0) value++;
+                    else if(decimalPlaces == 1) value += 0.1f;
+                    else if(decimalPlaces >= 2) value += 0.01f;
+                }
             }
             else
             {
                 //down touched
                 if (value > minValue)
-                    value--;
+                {
+                    if(decimalPlaces == 0) value--;
+                    else if(decimalPlaces == 1) value -= 0.1f;
+                    else if(decimalPlaces >= 2) value -= 0.01f;
+                }
             }
         }
     }
 
 private:
-    int value = 0;
+    float value = 0;
+    char valueText[7];
     uint16_t myForeColor = 0x0000;
     uint16_t myBackColor = 0xFFDF;
 };

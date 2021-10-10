@@ -1,7 +1,7 @@
 /*
  * Author: https://github.com/sepp89117/
  * Source: https://github.com/sepp89117/Teensy_UI
- * Date: 2021-09-17
+ * Date: 2021-10-10
 */
 
 #include "Arduino.h"
@@ -13,10 +13,19 @@ class BUI
 #define MAXCONTROLS 20
 
 public:
+    //Touchscreen calibration for my ILI9486
+    uint16_t TS_MINX = 3800;
+    uint16_t TS_MINY = 190;
+    uint16_t TS_MAXX = 120;
+    uint16_t TS_MAXY = 3800;
+
     BUI(TFTLIB *tft, XPT2046_Touchscreen *ts)
     {
         _tft = tft;
+        _tft->begin();
+        _tft->useFrameBuffer(1);
         _ts = ts;
+        _ts->begin();
 
         _tft->useFrameBuffer(true);
     };
@@ -38,6 +47,8 @@ public:
 
     bool addControl(Control *control)
     {
+        control->enableDarkmode(darkMode);
+
         for (uint16_t i = 0; i < MAXCONTROLS; i++)
         {
             if (_controls[i] != nullptr)
@@ -97,7 +108,6 @@ public:
                         }
                     }
 
-                    _controls[i]->enableDarkmode(darkMode);
                     _controls[i]->draw(_tft);
                 }
             }
@@ -110,15 +120,17 @@ public:
     {
         enable ? _bgColor = 0x0000 : _bgColor = 0xFFFF;
         darkMode = enable;
+
+        for (uint16_t i = 0; i < MAXCONTROLS; i++)
+        {
+            if (_controls[i] != nullptr)
+            {
+                _controls[i]->enableDarkmode(darkMode);
+            }
+        }
     }
 
 private:
-    //Touchscreen calibration
-    uint16_t TS_MINX = 3800;
-    uint16_t TS_MINY = 190;
-    uint16_t TS_MAXX = 120;
-    uint16_t TS_MAXY = 3800;
-
     uint16_t _bgColor = 0xFFFF;
     TFTLIB *_tft;
     XPT2046_Touchscreen *_ts;
