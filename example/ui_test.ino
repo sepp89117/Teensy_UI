@@ -31,7 +31,6 @@ ILI9486_t3n tft = ILI9486_t3n(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_M
 BUI ui = BUI(&tft, &ts);
 
 //ui buttons
-void btn1_onClickHandler(); //predefine handler1 for add handler in btn1 definition
 Button btn1 = Button(10, 280, 100, 30, (char *)"Settings", &btn1_onClickHandler);
 Button btnMain = Button(10, 280, 100, 30, (char *)"Main");
 
@@ -63,14 +62,17 @@ void setup()
   //init Serial if needed
   //Serial.begin(115200);
 
-  //init TFT
-  tft.begin();
-  tft.useFrameBuffer(1);
+  // Init TFT (tft.begin(); is executed in the initialization of ui)
   tft.setRotation(3);
 
-  //init touch
+  //init touch (ts.begin(); is executed in the initialization of ui)
   ts.setRotation(3);
-  ts.begin();
+
+  // Set touchscreen calibration in ui for my ILI9486
+  ui.TS_MINX = 3800;
+  ui.TS_MINY = 190;
+  ui.TS_MAXX = 120;
+  ui.TS_MAXY = 3800;
 
   //[optional] set checkbox1 font once
   cb1.setFont(Arial_14);
