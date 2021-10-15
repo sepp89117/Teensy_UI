@@ -1,7 +1,7 @@
 /*
  * Author: https://github.com/sepp89117/
  * Source: https://github.com/sepp89117/Teensy_UI
- * Date: 2021-10-10
+ * Date: 2021-10-15
 */
 
 #include "Arduino.h"
@@ -23,11 +23,13 @@ public:
     {
         _tft = tft;
         _tft->begin();
-        _tft->useFrameBuffer(1);
+
+        #ifndef NOFRAMEBUFFER 
+        _tft->useFrameBuffer(true);
+        #endif
+
         _ts = ts;
         _ts->begin();
-
-        _tft->useFrameBuffer(true);
     };
 
     BUI(){};
@@ -113,7 +115,9 @@ public:
             }
         }
 
-        _tft->updateScreen();
+        #ifndef NOFRAMEBUFFER 
+            _tft->updateScreen();
+        #endif
     };
 
     void enableDarkmode(bool enable)

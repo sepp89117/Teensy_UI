@@ -1,7 +1,7 @@
 /*
  * Author: https://github.com/sepp89117/
  * Source: https://github.com/sepp89117/Teensy_UI
- * Date: 2021-10-10
+ * Date: 2021-10-15
 */
 
 class Control
@@ -10,9 +10,11 @@ class Control
 #if defined(_ILI9486_t3NH_)
 #define TFTLIB ILI9486_t3n
 #define FONTS ILI9486_t3_font_t
+
 #elif defined(_ILI9341_t3NH_)
 #define TFTLIB ILI9341_t3n
 #define FONTS ILI9341_t3_font_t
+
 #else
 #error "TFT Library not supported or included after include BUI! Include BUI as last!"
 #endif
@@ -537,7 +539,9 @@ protected:
 
         //value
         dtostrf(value, 3, decimalPlaces, valueText);
-        tft->drawString(valueText, x + 5, y + ((h - fH) / 2) + 1);
+        tft->setCursor(x + 5, y + ((h - fH) / 2) + 1);
+        tft->print(valueText);
+        //tft->drawString(valueText, x + 5, y + ((h - fH) / 2) + 1);
 
         //up-button
         tft->fillRect(x + w - h, y, h, h / 2, colorBrigthness(myBackColor, -8));
