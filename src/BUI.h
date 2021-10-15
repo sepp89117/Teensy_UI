@@ -134,6 +134,69 @@ public:
         }
     }
 
+    void calibrateTouch()
+    {        
+        init();
+        TS_Point p;
+        delay(500);
+        
+        //TS_MINY
+        _tft->fillScreen(0x0000);
+        _tft->fillCircle(_tft->width() / 2 - 1, 0, 3, 0x07E0);
+        _tft->updateScreen();
+        while(!_ts->touched());
+        p = _ts->getPoint();
+        TS_MINY = p.y;
+        delay(500);
+
+        //TS_MAXX
+        _tft->fillScreen(0x0000);
+        _tft->fillCircle(_tft->width() - 1, _tft->height() / 2 - 1, 3, 0x07E0);
+        _tft->updateScreen();
+        while(!_ts->touched());
+        p = _ts->getPoint();
+        TS_MAXX = p.x;
+        delay(500);
+
+        //TS_MAXY
+        _tft->fillScreen(0x0000);
+        _tft->fillCircle(_tft->width() / 2 - 1, _tft->height() - 1, 3, 0x07E0);
+        _tft->updateScreen();
+        while(!_ts->touched());
+        p = _ts->getPoint();
+        TS_MAXY = p.y;
+        delay(500);
+
+        //TS_MINX
+        _tft->fillScreen(0x0000);
+        _tft->fillCircle(0, _tft->height() / 2 - 1, 3, 0x07E0);
+        _tft->updateScreen();
+        while(!_ts->touched());
+        p = _ts->getPoint();
+        TS_MINX = p.x;
+        delay(500);
+
+        //done
+        _tft->fillScreen(0x0000);
+        _tft->setCursor(0, 10);
+        _tft->setFont(Arial_14);
+        _tft->setTextColor(0x07E0);
+        _tft->println((char*)"Calibration done!");
+        _tft->println();
+        _tft->print((char*)"TS_MINX: ");
+        _tft->println(TS_MINX);
+        _tft->print((char*)"TS_MINY: ");
+        _tft->println(TS_MINY);
+        _tft->print((char*)"TS_MAXX: ");
+        _tft->println(TS_MAXX);
+        _tft->print((char*)"TS_MAXY: ");
+        _tft->println(TS_MAXY);        
+        _tft->println();
+        _tft->print((char*)"Touch to continue");
+        _tft->updateScreen();
+
+        while(!_ts->touched());
+    }
 private:
     uint16_t _bgColor = 0xFFFF;
     TFTLIB *_tft;
