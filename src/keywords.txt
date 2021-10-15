@@ -8,9 +8,11 @@ NumericUpDown	KEYWORD1
 BarGraph	KEYWORD1
 DonutGraph	KEYWORD1
 
+addControl	KEYWORD2
 calibrateTouch	KEYWORD2
 setPosition	KEYWORD2
 setOnClickHandler	KEYWORD2
+foreColor	KEYWORD2
 setFont	KEYWORD2
 setText	KEYWORD2
 getType	KEYWORD2
