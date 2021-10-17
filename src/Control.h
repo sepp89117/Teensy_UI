@@ -28,6 +28,15 @@ class Control
 #define NUMUD 5
 #define BARGRAPH 6
 #define DONUTGRAPH 7
+#define IMAGE 8
+
+//aligns
+#define ALIGNLEFT 0
+#define ALIGNCENTER 1
+#define ALIGNRIGHT 2
+#define ALIGNTOP 3
+#define ALIGNMIDDLE 4
+#define ALIGNBOTTOM 5
 
     friend class BUI;
 
@@ -62,9 +71,9 @@ public:
         t = text;
     }
 
-    void setText(const String& text)
+    void setText(const String &text)
     {
-        t = (char*)text.c_str();
+        t = (char *)text.c_str();
     }
 
     void setText(long text)
@@ -200,6 +209,18 @@ public:
         clickHandler = function;
     };
 
+    void setImage(uint16_t width, uint16_t height, const uint16_t *data)
+    {
+        _image = data;
+        _imageW = width;
+        _imageH = height;
+    }
+
+    void removeImage()
+    {
+        _image = NULL;
+    }
+
 protected:
     void draw(TFTLIB *tft) override
     {
@@ -219,7 +240,7 @@ protected:
         int darken = 0;
 
         //Check if text is to long for Button
-        if (tXsize + 8 > w)
+        if (tXsize + 8 + (_image != NULL ? (_imageW / 2) : 0) > w)
         {
             bool toLong = true;
             //while text is to long, remove last char from text
@@ -227,7 +248,7 @@ protected:
             {
                 t[strlen(t) - 1] = '\0';
                 tXsize = tft->strPixelLen(t);
-                if (tXsize + 8 <= w)
+                if (tXsize + 8 + (_image != NULL ? (_imageW / 2) : 0) <= w)
                     toLong = false;
             }
         }
@@ -249,14 +270,36 @@ protected:
         //outer border
         tft->drawRoundRect(x, y, w, h, 3, colorBrigthness(myBackColor, -55 + darken));
 
+        //Image
+        if (_image != NULL)
+        {
+            for (uint16_t imgY = 0; imgY < _imageH; imgY++)
+            {
+                if (imgY < h - 4) //make shure we are in V bounds of button (hide V image overflow)
+                    for (uint16_t imgX = 0; imgX < _imageW; imgX++)
+                    {
+                        if (imgX < w - 4) //make shure we are in H bounds of button (hide H image overflow)
+                        {
+                            tft->drawPixel(x + 2 + imgX, y + 2 + imgY, _image[imgY * _imageW + imgX]);
+                        }
+                        else
+                            break;
+                    }
+                else
+                    break;
+            }
+        }
+
         //Text
         if (sizeof(t) > 1)
         {
-            tft->setCursor(x + (w / 2) - (tXsize / 2), y + ((h - fH) / 2) + 1);
+            tft->setCursor(x + (w / 2) - (tXsize / 2) + (_image != NULL ? (_imageW / 2) : 0), y + ((h - fH) / 2) + 1);
+
             if (enabled)
                 tft->setTextColor(myForeColor);
             else
                 tft->setTextColor(0xA534);
+
             tft->print(t);
         }
     }
@@ -264,13 +307,13 @@ protected:
 private:
     uint16_t myForeColor = 0x0000;
     uint16_t myBackColor = 0xF79E;
+    const uint16_t *_image = NULL;
+    uint16_t _imageW;
+    uint16_t _imageH;
 };
 
 class Label : public Control
 {
-#define ALIGNLEFT 0
-#define ALIGNCENTER 1
-#define ALIGNRIGHT 2
 
 public:
     Label()
@@ -287,7 +330,8 @@ public:
         f = font;
     };
 
-    uint8_t textAlign = ALIGNLEFT;
+    uint8_t textAlign = ALIGNLEFT; //horizontal text alignment
+
 protected:
     void draw(TFTLIB *tft) override
     {
@@ -295,20 +339,20 @@ protected:
         tft->setTextColor(foreColor);
 
         uint16_t textWidth = tft->strPixelLen(t);
-        switch(textAlign){
-            case ALIGNLEFT:
-                tft->setCursor(x, y);
+        switch (textAlign)
+        {
+        case ALIGNLEFT:
+            tft->setCursor(x, y);
             break;
-            case ALIGNCENTER:
-                tft->setCursor(x-textWidth/2, y);
+        case ALIGNCENTER:
+            tft->setCursor(x - textWidth / 2, y);
             break;
-            case ALIGNRIGHT:
-                tft->setCursor(x-textWidth, y);
+        case ALIGNRIGHT:
+            tft->setCursor(x - textWidth, y);
             break;
-            default:
-                tft->setCursor(x, y);
+        default:
+            tft->setCursor(x, y);
         }
-        
 
         tft->print(t);
     }
@@ -569,9 +613,12 @@ protected:
                 //up touched
                 if (value < maxValue)
                 {
-                    if(decimalPlaces == 0) value++;
-                    else if(decimalPlaces == 1) value += 0.1f;
-                    else if(decimalPlaces >= 2) value += 0.01f;
+                    if (decimalPlaces == 0)
+                        value++;
+                    else if (decimalPlaces == 1)
+                        value += 0.1f;
+                    else if (decimalPlaces >= 2)
+                        value += 0.01f;
                 }
             }
             else
@@ -579,9 +626,12 @@ protected:
                 //down touched
                 if (value > minValue)
                 {
-                    if(decimalPlaces == 0) value--;
-                    else if(decimalPlaces == 1) value -= 0.1f;
-                    else if(decimalPlaces >= 2) value -= 0.01f;
+                    if (decimalPlaces == 0)
+                        value--;
+                    else if (decimalPlaces == 1)
+                        value -= 0.1f;
+                    else if (decimalPlaces >= 2)
+                        value -= 0.01f;
                 }
             }
         }
@@ -716,7 +766,6 @@ protected:
 
     void internalOnClickHandler(int touchX, int touchY)
     {
-        
     }
 
 private:
@@ -737,7 +786,7 @@ public:
     };
     float minValue = 0;
     float maxValue = 100;
-    char* unitName = (char*)"\0";
+    char *unitName = (char *)"\0";
 
     DonutGraph()
     {
@@ -824,7 +873,7 @@ protected:
         tft->drawLine(x + 1, y + 1, x + w - 2, y + 1, colorBrigthness(myBackColor, 180));
         tft->drawPixel(x + 2, y + 2, colorBrigthness(myBackColor, 158));
 
-        //half circle fill black background       
+        //half circle fill black background
         float stepW = 0.4;
         int x1, y1, x2, y2, x3, y3, x4, y4;
 
@@ -842,26 +891,26 @@ protected:
         //outer half circle
         tft->drawCircleHelper(centerX, centerY, r, 1, colorBrigthness(myBackColor, 70));
         tft->drawCircleHelper(centerX, centerY, r, 2, colorBrigthness(myBackColor, 70));
-        tft->drawPixel(centerX - r, centerY,colorBrigthness(myBackColor, 70));
-        tft->drawPixel(centerX + r, centerY,colorBrigthness(myBackColor, 70));
-        tft->drawPixel(centerX, centerY-r,colorBrigthness(myBackColor, 70));
+        tft->drawPixel(centerX - r, centerY, colorBrigthness(myBackColor, 70));
+        tft->drawPixel(centerX + r, centerY, colorBrigthness(myBackColor, 70));
+        tft->drawPixel(centerX, centerY - r, colorBrigthness(myBackColor, 70));
         tft->drawCircleHelper(centerX, centerY, r - 1, 1, colorBrigthness(myBackColor, 100));
         tft->drawCircleHelper(centerX, centerY, r - 1, 2, colorBrigthness(myBackColor, 100));
-        tft->drawPixel(centerX - r+1, centerY,colorBrigthness(myBackColor, 100));
-        tft->drawPixel(centerX + r-1, centerY,colorBrigthness(myBackColor, 100));
-        tft->drawPixel(centerX, centerY-r+1,colorBrigthness(myBackColor, 100));
+        tft->drawPixel(centerX - r + 1, centerY, colorBrigthness(myBackColor, 100));
+        tft->drawPixel(centerX + r - 1, centerY, colorBrigthness(myBackColor, 100));
+        tft->drawPixel(centerX, centerY - r + 1, colorBrigthness(myBackColor, 100));
 
         //inner half circle
         tft->drawCircleHelper(centerX, centerY, r - 16, 1, colorBrigthness(myBackColor, 70));
         tft->drawCircleHelper(centerX, centerY, r - 16, 2, colorBrigthness(myBackColor, 70));
-        tft->drawPixel(centerX - r+16, centerY,colorBrigthness(myBackColor, 70));
-        tft->drawPixel(centerX + r-16, centerY,colorBrigthness(myBackColor, 70));
-        tft->drawPixel(centerX, centerY-r+16,colorBrigthness(myBackColor, 70));
+        tft->drawPixel(centerX - r + 16, centerY, colorBrigthness(myBackColor, 70));
+        tft->drawPixel(centerX + r - 16, centerY, colorBrigthness(myBackColor, 70));
+        tft->drawPixel(centerX, centerY - r + 16, colorBrigthness(myBackColor, 70));
         tft->drawCircleHelper(centerX, centerY, r - 17, 1, colorBrigthness(myBackColor, 40));
         tft->drawCircleHelper(centerX, centerY, r - 17, 2, colorBrigthness(myBackColor, 40));
-        tft->drawPixel(centerX - r+17, centerY,colorBrigthness(myBackColor, 40));
-        tft->drawPixel(centerX + r-17, centerY,colorBrigthness(myBackColor, 40));
-        tft->drawPixel(centerX, centerY-r+17,colorBrigthness(myBackColor, 40));
+        tft->drawPixel(centerX - r + 17, centerY, colorBrigthness(myBackColor, 40));
+        tft->drawPixel(centerX + r - 17, centerY, colorBrigthness(myBackColor, 40));
+        tft->drawPixel(centerX, centerY - r + 17, colorBrigthness(myBackColor, 40));
 
         for (int i = 0; i < 9; i++)
         {
@@ -881,14 +930,15 @@ protected:
             getCircleCoord(centerX, centerY, r - 16, -180.0f + i, x2, y2);
             getCircleCoord(centerX, centerY, r - 16, -180.0f + i + 1, x3, y3);
 
-            //get color to draw            
+            //get color to draw
             for (uint8_t c = 1; c < 5; c++)
             {
                 if (valueColors[c].isSet)
                 {
                     float colorAngle = 180.0f / deltaVal * valueColors[c].value;
 
-                    if (i >= colorAngle) {
+                    if (i >= colorAngle)
+                    {
                         drawinColor = valueColors[c].color;
                     }
                 }
@@ -909,7 +959,8 @@ protected:
         //segval 8
         segval = maxValue;
         ltoa(segval, str, 10);
-        if (segval > 1000) segval /= 100.0f, multipl = true;
+        if (segval > 1000)
+            segval /= 100.0f, multipl = true;
         tXsize = tft->strPixelLen(str);
         tft->setCursor(x + 141 - tXsize / 2, y + 87);
         tft->print(segval, 0);
@@ -917,59 +968,61 @@ protected:
         tft->setCursor(x + 125, y + 25);
         segval = valSegment * 6.0f + (float)minValue;
         ltoa(segval, str, 10);
-        if (multipl) segval /= 100.0f;
+        if (multipl)
+            segval /= 100.0f;
         tft->print(segval, 0);
         //segval 4
         segval = valSegment * 4.0f + (float)minValue;
         ltoa(segval, str, 10);
-        if (multipl) segval /= 100.0f;
+        if (multipl)
+            segval /= 100.0f;
         tXsize = tft->strPixelLen(str);
         tft->setCursor(centerX - tXsize / 2, y + 5);
         tft->print(segval, 0);
         //segval 2
         segval = valSegment * 2.0f + (float)minValue;
         ltoa(segval, str, 10);
-        if (multipl) segval /= 100.0f;
+        if (multipl)
+            segval /= 100.0f;
         tXsize = tft->strPixelLen(str);
         tft->setCursor(x + 33 - tXsize, y + 25);
         tft->print(segval, 0);
         //segval 0
         segval = minValue;
         ltoa(segval, str, 10);
-        if (multipl && segval != 0) segval /= 100.0f;
+        if (multipl && segval != 0)
+            segval /= 100.0f;
         tXsize = tft->strPixelLen(str);
         tft->setCursor(x + 16 - tXsize / 2, y + 87);
         tft->print(segval, 0);
         //print multiplier
-        if (multipl) {
+        if (multipl)
+        {
             tft->setCursor(x + 119, y + 5);
             tft->print("x100");
         }
-
 
         //print value
         ltoa(value, str, 10);
         tft->setFont(Arial_20);
         int tXPos = centerX - tft->strPixelLen(str) / 2;
         tft->setTextColor(drawinColor);
-        tft->setCursor(tXPos, centerY-Arial_20.cap_height/2);
+        tft->setCursor(tXPos, centerY - Arial_20.cap_height / 2);
         tft->print(str);
 
         //print text
         tft->setTextColor(myForeColor);
         tft->setFont(Arial_12_Bold);
         tXPos = centerX - tft->strPixelLen(t) / 2;
-        tft->setCursor(tXPos, centerY+17);
+        tft->setCursor(tXPos, centerY + 17);
         tft->print(t);
 
         //print unit name
         tft->setTextColor(myForeColor);
         tft->setFont(Arial_12_Bold);
         tXPos = centerX - tft->strPixelLen(unitName) / 2;
-        tft->setCursor(tXPos, centerY-28);
+        tft->setCursor(tXPos, centerY - 28);
         tft->print(unitName);
-
-
 
         //graph
         // tft->fillRect(x + 25, y + (h - 5) + -1 * ((value - minValue) * stepWidth), w - 25, (value - minValue) * stepWidth, valueColors[0].color);
@@ -986,7 +1039,6 @@ protected:
 
     void internalOnClickHandler(int touchX, int touchY)
     {
-        
     }
 
 private:
@@ -1000,4 +1052,70 @@ private:
         outX = (float)centerX + cos((angle * PI) / 180.0f) * (float)radius;
         outY = (float)centerY + sin((angle * PI) / 180.0f) * (float)radius;
     }
+};
+
+class Image : public Control
+{
+public:
+    Image()
+    {
+        type = IMAGE;
+    };
+
+    Image(int xPos, int yPos, int width, int height, const uint16_t *data)
+    {
+        x = xPos;
+        y = yPos;
+        w = width;
+        h = height;
+        _data = data;
+        type = IMAGE;
+    };
+
+    uint8_t imageHAlign = ALIGNLEFT; //horizontal image alignment
+    uint8_t imageVAlign = ALIGNTOP;  //vertical image alignment
+    bool visible = true;
+
+protected:
+    void draw(TFTLIB *tft) override
+    {
+        uint16_t _x = x;
+        uint16_t _y = y;
+
+        switch (imageHAlign)
+        {
+        case ALIGNLEFT:
+            _x = x;
+            break;
+        case ALIGNCENTER:
+            _x = x - w / 2;
+            break;
+        case ALIGNRIGHT:
+            _x = x - w;
+            break;
+        default:
+            _x = x;
+        }
+
+        switch (imageVAlign)
+        {
+        case ALIGNTOP:
+            _y = y;
+            break;
+        case ALIGNMIDDLE:
+            _y = y - h / 2;
+            break;
+        case ALIGNBOTTOM:
+            _y = y - h;
+            break;
+        default:
+            _y = y;
+        }
+
+        if (visible)
+            tft->writeRect(_x, _y, w, h, _data);
+    }
+
+private:
+    const uint16_t *_data = NULL;
 };

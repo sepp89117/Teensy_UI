@@ -7,6 +7,7 @@ Slider	KEYWORD1
 NumericUpDown	KEYWORD1
 BarGraph	KEYWORD1
 DonutGraph	KEYWORD1
+Image	KEYWORD1
 
 addControl	KEYWORD2
 calibrateTouch	KEYWORD2
@@ -29,6 +30,9 @@ enableDarkmode	KEYWORD2
 addValueColor	KEYWORD2
 unitName	KEYWORD2
 textAlign	KEYWORD2
+setImage	KEYWORD2
+visible	KEYWORD2
+removeImage	KEYWORD2
 
 UNDEFINED	LITERAL1
 BUTTON	LITERAL1

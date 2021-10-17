@@ -10,7 +10,7 @@
 class BUI
 {
 //Maximum controls per Window
-#define MAXCONTROLS 20
+#define MAXCONTROLS 24
 
 public:
     //Touchscreen calibration for my ILI9486
@@ -91,7 +91,7 @@ public:
             }
         }
 
-        for (uint16_t i = 0; i < MAXCONTROLS; i++)
+        for (uint8_t i = 0; i < MAXCONTROLS; i++)
         {
             if (_controls[i] != nullptr)
             {
@@ -125,7 +125,7 @@ public:
         enable ? _bgColor = 0x0000 : _bgColor = 0xFFFF;
         darkMode = enable;
 
-        for (uint16_t i = 0; i < MAXCONTROLS; i++)
+        for (uint8_t i = 0; i < MAXCONTROLS; i++)
         {
             if (_controls[i] != nullptr)
             {
