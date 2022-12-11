@@ -1,7 +1,7 @@
 /*
  * Author: https://github.com/sepp89117/
  * Source: https://github.com/sepp89117/Teensy_UI
- * Date: 2021-09-17
+ * Date: 2021-12-23
  * 
  * get 565-colors from http://www.barth-dev.de/online/rgb565-color-picker/
 */
@@ -57,10 +57,19 @@ BarGraph bg1 = BarGraph(250, 150, 40, 100, 0, 132, 0x07E0, (char*)"sl1_val");
 //ui DonutGraph
 DonutGraph dg1 = DonutGraph(320, 150, 0, 132, 0xFFFF, (char*)"sl1_val");
 
+//ui DropDown
+DropDown dd1 = DropDown(10, 125, 150, 32);
+
+//ui TextBox
+TextBox tb1 = TextBox(10, 165, 150, 32, &tb1_onClickHandler);
+
+//ui NumPad
+NumPad np1 = NumPad(200, &np1_onClickHandler);
+
 void setup()
 {
   //init Serial if needed
-  //Serial.begin(115200);
+  //Serial.begin(9600);
 
   // Init TFT (tft.begin(); is executed in the initialization of ui)
   tft.setRotation(3);
@@ -99,6 +108,15 @@ void setup()
   dg1.addValueColor(80, 0xF800); //red
   //[optional] set donutGraph1 unitName
   dg1.unitName = (char*)"X";
+
+  //[optional] set up to 8 options for DropDown
+  dd1.addOption((char*)"Option");
+  dd1.addOption((char*)"OptionOption");
+  dd1.addOption((char*)"OptionOptionOption");
+  //[optional] set selectedIndex for DropDown
+  dd1.setSelectedIndex(0);
+
+  ui.calibrateTouch();
 
   //start with some screen
   getMainScreen();
@@ -148,6 +166,9 @@ void getMainScreen()
   ui.addControl(&lblUPS);
   ui.addControl(&lblRunningtime);
   ui.addControl(&lblMillis);
+  ui.addControl(&dd1);
+  ui.addControl(&tb1);
+  ui.addControl(&np1);
   ui.addControl(&btn1);
 }
 
@@ -190,4 +211,14 @@ void sl1_onChangeHandler()
 {
   bg1.setValue(sl1.getValue());
   dg1.setValue(sl1.getValue());
+}
+
+void tb1_onClickHandler()
+{
+  np1.enabled = true;
+}
+
+void np1_onClickHandler()
+{
+  tb1.addText(np1.getClickedValue());
 }
