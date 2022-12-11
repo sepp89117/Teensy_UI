@@ -1,7 +1,7 @@
 /*
  * Author: https://github.com/sepp89117/
  * Source: https://github.com/sepp89117/Teensy_UI
- * Date: 2021-10-15
+ * Date: 2022-05-16
 */
 
 #include "Arduino.h"
@@ -10,7 +10,7 @@
 class BUI
 {
 //Maximum controls per Window
-#define MAXCONTROLS 24
+#define MAXCONTROLS 24 //max max ist 256 (uint8_t)
 
 public:
     //Touchscreen calibration for my ILI9486
@@ -24,9 +24,9 @@ public:
         _tft = tft;
         _tft->begin();
 
-        #ifndef NOFRAMEBUFFER 
+#ifndef NOFRAMEBUFFER
         _tft->useFrameBuffer(true);
-        #endif
+#endif
 
         _ts = ts;
         _ts->begin();
@@ -34,11 +34,11 @@ public:
 
     BUI(){};
 
-    void init()
+    void initNewScreen()
     {
-        for (uint16_t i = 0; i < MAXCONTROLS; i++)
+        for (uint8_t i = 0; i < MAXCONTROLS; i++)
         {
-            _controls[i] = new Control;
+            _controls[i] = nullptr;//new Control;
         }
     }
 
@@ -86,8 +86,32 @@ public:
                 lastTouchedType = UNDEFINED;
 
                 p = _ts->getPoint();
+
+                //Serial.printf("RAW-Touch X: %d, Y: %d\n", p.x, p.y );
+
                 p.x = map(p.x, TS_MINX, TS_MAXX, 0, _tft->width());
                 p.y = map(p.y, TS_MINY, TS_MAXY, 0, _tft->height());
+            }
+        }
+
+        //check for priorized clickHandler
+        int8_t priorizedControl = -1;
+
+        for (uint8_t i = 0; i < MAXCONTROLS; i++)
+        {
+            if (_controls[i] != nullptr)
+            {
+                if (_controls[i]->getType() != UNDEFINED)
+                {
+                    if (_controls[i]->priorized)
+                    {
+                        lastTouchedType = _controls[i]->getType();
+
+                        _controls[i]->internalOnClickHandler(p.x, p.y);
+
+                        priorizedControl = i;                        
+                    }
+                }
             }
         }
 
@@ -97,7 +121,7 @@ public:
             {
                 if (_controls[i]->getType() != UNDEFINED)
                 {
-                    if (_controls[i]->checkTouched(p.x, p.y, p.z))
+                    if (_controls[i]->checkTouched(p.x, p.y, p.z) && priorizedControl == -1)
                     {
                         lastTouchedType = _controls[i]->getType();
 
@@ -115,9 +139,13 @@ public:
             }
         }
 
-        #ifndef NOFRAMEBUFFER 
-            _tft->updateScreen();
-        #endif
+        //draw priorizedControl ovarlay
+        if (priorizedControl >= 0)
+        {
+            _controls[priorizedControl]->draw(_tft);
+        }
+
+        _tft->updateScreen();
     };
 
     void enableDarkmode(bool enable)
@@ -135,16 +163,17 @@ public:
     }
 
     void calibrateTouch()
-    {        
-        init();
+    {
+        initNewScreen();
         TS_Point p;
         delay(500);
-        
+
         //TS_MINY
         _tft->fillScreen(0x0000);
         _tft->fillCircle(_tft->width() / 2 - 1, 0, 3, 0x07E0);
         _tft->updateScreen();
-        while(!_ts->touched());
+        while (!_ts->touched())
+            ;
         p = _ts->getPoint();
         TS_MINY = p.y;
         delay(500);
@@ -153,7 +182,8 @@ public:
         _tft->fillScreen(0x0000);
         _tft->fillCircle(_tft->width() - 1, _tft->height() / 2 - 1, 3, 0x07E0);
         _tft->updateScreen();
-        while(!_ts->touched());
+        while (!_ts->touched())
+            ;
         p = _ts->getPoint();
         TS_MAXX = p.x;
         delay(500);
@@ -162,7 +192,8 @@ public:
         _tft->fillScreen(0x0000);
         _tft->fillCircle(_tft->width() / 2 - 1, _tft->height() - 1, 3, 0x07E0);
         _tft->updateScreen();
-        while(!_ts->touched());
+        while (!_ts->touched())
+            ;
         p = _ts->getPoint();
         TS_MAXY = p.y;
         delay(500);
@@ -171,7 +202,8 @@ public:
         _tft->fillScreen(0x0000);
         _tft->fillCircle(0, _tft->height() / 2 - 1, 3, 0x07E0);
         _tft->updateScreen();
-        while(!_ts->touched());
+        while (!_ts->touched())
+            ;
         p = _ts->getPoint();
         TS_MINX = p.x;
         delay(500);
@@ -181,21 +213,26 @@ public:
         _tft->setCursor(0, 10);
         _tft->setFont(Arial_14);
         _tft->setTextColor(0x07E0);
-        _tft->println((char*)"Calibration done!");
+        _tft->println((char *)"Calibration done!");
         _tft->println();
-        _tft->print((char*)"TS_MINX: ");
+        _tft->print((char *)"TS_MINX: ");
         _tft->println(TS_MINX);
-        _tft->print((char*)"TS_MINY: ");
+        _tft->print((char *)"TS_MINY: ");
         _tft->println(TS_MINY);
-        _tft->print((char*)"TS_MAXX: ");
+        _tft->print((char *)"TS_MAXX: ");
         _tft->println(TS_MAXX);
-        _tft->print((char*)"TS_MAXY: ");
-        _tft->println(TS_MAXY);        
+        _tft->print((char *)"TS_MAXY: ");
+        _tft->println(TS_MAXY);
         _tft->println();
-        _tft->print((char*)"Touch to continue");
+        _tft->print((char *)"Touch to continue");
         _tft->updateScreen();
 
-        while(!_ts->touched());
+        while (!_ts->touched())
+            ;
+    }
+
+    uint32_t getLastTouch() {
+        return lastTouch;
     }
 private:
     uint16_t _bgColor = 0xFFFF;
